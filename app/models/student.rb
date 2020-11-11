@@ -99,11 +99,9 @@ class Student < User
   end
 
   def solos(filtered_course = nil)
-    if filtered_course
-      attendance_records.where(pair_ids: [], ignore: nil).where("date between ? and ?", filtered_course.try(:start_date), filtered_course.try(:end_date)).select { |ar| !ar.date.friday? }.count
-    else
-      attendance_records.where(pair_ids: [], ignore: nil).select { |ar| !ar.date.friday? }.count
-    end
+    solo_records = attendance_records.includes(:pairings).where(pairings: {id: nil})
+    filtered_records = filtered_course ? solo_records.where("date between ? and ?", filtered_course.start_date, filtered_course.end_date) : solo_records
+    filtered_records.reject {|ar| ar.date.friday?}.count
   end
 
   def internship_course
@@ -156,8 +154,13 @@ class Student < User
     submissions.find { |submission| submission.code_review_id == code_review.id }
   end
 
+  def pairs(course=nil)
+    selected_attendance_records = course ? attendance_records.where("date between ? and ?", course.try(:start_date), course.try(:end_date)) : attendance_records
+    (selected_attendance_records.map {|s| s.pairings.pluck(:pair_id)}.flatten).compact.sort
+  end
+
   def pairs_on_day(day)
-    Student.where(id: attendance_record_on_day(day).try(:pair_ids))
+    Student.where(id: attendance_record_on_day(day).try(:pairings).try('pluck', 'pair_id'))
   end
 
   def attendance_record_on_day(day)
@@ -171,11 +174,6 @@ class Student < User
     else
       (similar_grade_students[random_starting_point, NUMBER_OF_RANDOM_PAIRS] + similar_grade_students[0, NUMBER_OF_RANDOM_PAIRS - distance_until_end]).uniq
     end
-  end
-
-  def pairs(course=nil)
-    selected_attendance_records = course ? attendance_records.where("date between ? and ?", course.try(:start_date), course.try(:end_date)) : attendance_records
-    (selected_attendance_records.map {|s| s.pair_ids}.flatten).compact.sort
   end
 
   def latest_total_grade_score

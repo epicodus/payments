@@ -242,7 +242,8 @@ describe Student do
     let(:student_2) { FactoryBot.create(:student, course: course) }
 
     it "returns the pair partner" do
-      attendance_record = FactoryBot.create(:attendance_record, student: student_1, pair_ids: [student_2.id], date: student_1.course.start_date)
+      attendance_record = FactoryBot.create(:attendance_record, student: student_1, date: student_1.course.start_date)
+      attendance_record.pairings << Pairing.new(pair: student_2)
       expect(student_1.pairs_on_day(attendance_record.date)).to eq [student_2]
     end
 
@@ -252,7 +253,9 @@ describe Student do
     end
 
     it "returns two pairs if present" do
-      attendance_record = FactoryBot.create(:attendance_record, student: student_1, pair_ids: [student_1.id, student_2.id], date: student_1.course.start_date)
+      attendance_record = FactoryBot.create(:attendance_record, student: student_1, date: student_1.course.start_date)
+      attendance_record.pairings << Pairing.new(pair: student_1)
+      attendance_record.pairings << Pairing.new(pair: student_2)
       expect(student_1.pairs_on_day(attendance_record.date)).to eq [student_1, student_2]
     end
 
@@ -315,12 +318,14 @@ describe Student do
     let(:student_2) { FactoryBot.create(:student, course: course) }
 
     it "returns list of all pair ids" do
-      attendance_record = FactoryBot.create(:attendance_record, student: student_1, pair_ids: [student_2.id], date: student_1.course.start_date)
+      attendance_record = FactoryBot.create(:attendance_record, student: student_1, date: student_1.course.start_date)
+      attendance_record.pairings << Pairing.new(pair: student_2)
       expect(student_1.pairs).to eq [student_2.id]
     end
 
     it "returns list of all pair ids for a given course time period" do
-      attendance_record = FactoryBot.create(:attendance_record, student: student_1, pair_ids: [student_2.id], date: student_1.course.start_date)
+      attendance_record = FactoryBot.create(:attendance_record, student: student_1, date: student_1.course.start_date)
+      attendance_record.pairings << Pairing.new(pair: student_2)
       expect(student_1.pairs(student_1.course)).to eq [student_2.id]
     end
   end
@@ -957,17 +962,8 @@ end
 
     it "calculates the number of solos when some" do
       travel_to course.start_date do
-        FactoryBot.create(:attendance_record, student: student, pair_ids: [1])
-      end
-      travel_to course.start_date + 2.days do
-        FactoryBot.create(:attendance_record, student: student)
-      end
-      expect(student.solos(course)).to eq 1
-    end
-
-    it "ignores solos when attendance record is marked ignore" do
-      travel_to course.start_date do
-        FactoryBot.create(:attendance_record, student: student, ignore: true)
+        attendance_record = FactoryBot.create(:attendance_record, student: student)
+        attendance_record.pairings << Pairing.new(pair: FactoryBot.create(:student))
       end
       travel_to course.start_date + 2.days do
         FactoryBot.create(:attendance_record, student: student)

@@ -11,6 +11,9 @@ class AttendanceRecord < ApplicationRecord
   before_update :sign_out, if: :signing_out
 
   belongs_to :student
+  has_many :pairings, dependent: :destroy
+
+  accepts_nested_attributes_for :pairings, allow_destroy: true
 
   def self.todays_totals_for(course, status)
     student_ids = course.students(&:id)

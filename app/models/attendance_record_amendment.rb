@@ -23,7 +23,8 @@ class AttendanceRecordAmendment
 private
 
   def amend_attendance_record
-    attendance_record.update(pair_ids: pair_ids)
+    attendance_record.pairings.delete_all
+    attendance_record.update(pairings_attributes: pair_ids.map {|id| {pair_id: id}})
     case status
     when "On time"
       attendance_record.update(tardy: false, left_early: false)
