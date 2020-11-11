@@ -9,6 +9,7 @@ class AttendanceRecord < ApplicationRecord
   before_validation :set_date
   before_validation :sign_in
   before_update :sign_out, if: :signing_out
+  after_create :assign_inverse_pairs
 
   belongs_to :student
   has_many :pairings, dependent: :destroy
@@ -63,5 +64,12 @@ private
 
   def set_date
     self.date = Time.zone.now.to_date if self.date.nil?
+  end
+
+  def assign_inverse_pairs
+    inverse_pairings = Pairing.joins(:attendance_record).merge(AttendanceRecord.where(date: date)).where(pair_id: student.id)
+    inverse_pairings.each do |pairing|
+      pairings.find_or_create_by(pair_id: pairing.attendance_record.student_id)
+    end
   end
 end
